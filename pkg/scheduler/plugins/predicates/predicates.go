@@ -177,10 +177,13 @@ func enablePredicate(args framework.Arguments) predicateEnable {
 	args.GetBool(&predicate.podTopologySpreadEnable, PodTopologySpreadEnable)
 
 	// Checks whether predicate.GPUSharingEnable is provided or not, if given, modifies the value in predicateEnable struct.
+	// TODO: move these arguments to a seperate plugin to ease the burden of predicates
 	args.GetBool(&gpushare.GpuSharingEnable, GPUSharingPredicate)
 	args.GetBool(&gpushare.GpuNumberEnable, GPUNumberPredicate)
 	args.GetBool(&gpushare.NodeLockEnable, NodeLockEnable)
 	args.GetBool(&vgpu.VGPUEnable, VGPUEnable)
+	args.GetBool(&vgpu.NodeLockEnable, NodeLockEnable)
+	args.GetInt(&vgpu.SchedulePolicy, vgpu.SchedulePolicyArgument)
 
 	if gpushare.GpuSharingEnable && gpushare.GpuNumberEnable {
 		klog.Fatal("can not define true in both gpu sharing and gpu number")
