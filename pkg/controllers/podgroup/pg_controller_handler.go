@@ -119,6 +119,27 @@ func (pg *pgcontroller) addStatefulSet(obj interface{}) {
 			klog.Errorf("Failed to delete PodGroup <%s/%s>: %v", sts.Namespace, pgName, err)
 		}
 	}
+
+	// In the rolling upgrade scenario, the addStatefulSet(replicas=0) event may be received before
+	// the updateStatefulSet(replicas=1) event, and after the addPod event for the new created pod.
+	// In this event, need to create PodGroup for the pod.
+	if *sts.Spec.Replicas > 0 {
+		selector := metav1.LabelSelector{MatchLabels: sts.Spec.Selector.MatchLabels}
+		podList, err := pg.kubeClient.CoreV1().Pods(sts.Namespace).List(context.TODO(),
+			metav1.ListOptions{LabelSelector: metav1.FormatLabelSelector(&selector)})
+		if err != nil {
+			klog.Errorf("Failed to list pods for StatefulSet <%s/%s>: %v", sts.Namespace, sts.Name, err)
+			return
+		}
+		if podList != nil && len(podList.Items) > 0 {
+			pod := podList.Items[0]
+			klog.V(4).Infof("Try to create podgroup for pod %s/%s", pod.Namespace, pod.Name)
+			err := pg.createNormalPodPGIfNotExist(&pod)
+			if err != nil {
+				klog.Errorf("Failed to create PodGroup for pod <%s/%s>: %v", pod.Namespace, pod.Name, err)
+			}
+		}
+	}
 }
 
 func (pg *pgcontroller) updateStatefulSet(oldObj, newObj interface{}) {
