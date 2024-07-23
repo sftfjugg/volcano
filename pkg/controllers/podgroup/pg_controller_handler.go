@@ -105,6 +105,26 @@ func (pg *pgcontroller) updateReplicaSet(oldObj, newObj interface{}) {
 	pg.addReplicaSet(newObj)
 }
 
+func (pg *pgcontroller) addStatefulSet(obj interface{}) {
+	sts, ok := obj.(*appsv1.StatefulSet)
+	if !ok {
+		klog.Errorf("Failed to convert %v to appsv1.StatefulSet", obj)
+		return
+	}
+
+	if *sts.Spec.Replicas == 0 {
+		pgName := batchv1alpha1.PodgroupNamePrefix + string(sts.UID)
+		err := pg.vcClient.SchedulingV1beta1().PodGroups(sts.Namespace).Delete(context.TODO(), pgName, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			klog.Errorf("Failed to delete PodGroup <%s/%s>: %v", sts.Namespace, pgName, err)
+		}
+	}
+}
+
+func (pg *pgcontroller) updateStatefulSet(oldObj, newObj interface{}) {
+	pg.addStatefulSet(newObj)
+}
+
 func (pg *pgcontroller) updatePodAnnotations(pod *v1.Pod, pgName string) error {
 	if pod.Annotations == nil {
 		pod.Annotations = make(map[string]string)
