@@ -17,7 +17,9 @@ limitations under the License.
 package proportion
 
 import (
+	"fmt"
 	"math"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -355,7 +357,7 @@ func (pp *proportionPlugin) OnSessionOpen(ssn *framework.Session) {
 			}
 		}
 
-		inqueue := r.LessEqual(rr, api.Infinity)
+		inqueue, resources := r.LessEqualWithResourcesName(rr, api.Infinity)
 		klog.V(5).Infof("job %s inqueue %v", job.Name, inqueue)
 		if inqueue {
 			// deduct the resources of scheduling gated tasks in a job when calculating inqueued resources
@@ -363,7 +365,8 @@ func (pp *proportionPlugin) OnSessionOpen(ssn *framework.Session) {
 			attr.inqueue.Add(job.DeductSchGatedResources(minReq))
 			return util.Permit
 		}
-		ssn.RecordPodGroupEvent(job.PodGroup, v1.EventTypeNormal, string(scheduling.PodGroupUnschedulableType), "queue resource quota insufficient")
+		ssn.RecordPodGroupEvent(job.PodGroup, v1.EventTypeNormal, string(scheduling.PodGroupUnschedulableType),
+			fmt.Sprintf("queue resource quota insufficient %s", strings.Join(resources, ",")))
 		return util.Reject
 	})
 
