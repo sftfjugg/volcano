@@ -23,6 +23,7 @@ import (
 
 	"volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/metrics"
+	"volcano.sh/volcano/pkg/scheduler/util"
 )
 
 // Operation type
@@ -81,7 +82,7 @@ func (s *Statement) Evict(reclaimee *api.TaskInfo, reason string) error {
 
 	for _, eh := range s.ssn.eventHandlers {
 		if eh.DeallocateFunc != nil {
-			eh.DeallocateFunc(&Event{
+			eh.DeallocateFunc(&util.Event{
 				Task: reclaimee,
 			})
 		}
@@ -132,7 +133,7 @@ func (s *Statement) unevict(reclaimee *api.TaskInfo) error {
 
 	for _, eh := range s.ssn.eventHandlers {
 		if eh.AllocateFunc != nil {
-			eh.AllocateFunc(&Event{
+			eh.AllocateFunc(&util.Event{
 				Task: reclaimee,
 			})
 		}
@@ -178,7 +179,7 @@ func (s *Statement) Pipeline(task *api.TaskInfo, hostname string, evictionOccurr
 
 	for _, eh := range s.ssn.eventHandlers {
 		if eh.AllocateFunc != nil {
-			eventInfo := &Event{
+			eventInfo := &util.Event{
 				Task: task,
 			}
 			eh.AllocateFunc(eventInfo)
@@ -231,7 +232,7 @@ func (s *Statement) UnPipeline(task *api.TaskInfo) error {
 
 	for _, eh := range s.ssn.eventHandlers {
 		if eh.DeallocateFunc != nil {
-			eventInfo := &Event{
+			eventInfo := &util.Event{
 				Task: task,
 			}
 			eh.DeallocateFunc(eventInfo)
@@ -301,7 +302,7 @@ func (s *Statement) Allocate(task *api.TaskInfo, nodeInfo *api.NodeInfo) (err er
 	// Callbacks
 	for _, eh := range s.ssn.eventHandlers {
 		if eh.AllocateFunc != nil {
-			eventInfo := &Event{
+			eventInfo := &util.Event{
 				Task: task,
 			}
 			eh.AllocateFunc(eventInfo)
@@ -334,7 +335,8 @@ func (s *Statement) UnAllocate(task *api.TaskInfo) error {
 }
 
 func (s *Statement) allocate(task *api.TaskInfo) error {
-	if err := s.ssn.cache.AddBindTask(task); err != nil {
+	bindContext := s.ssn.CreateBindContext(task)
+	if err := s.ssn.cache.AddBindTask(bindContext); err != nil {
 		return err
 	}
 
@@ -380,7 +382,7 @@ func (s *Statement) unallocate(task *api.TaskInfo) error {
 
 	for _, eh := range s.ssn.eventHandlers {
 		if eh.DeallocateFunc != nil {
-			eh.DeallocateFunc(&Event{
+			eh.DeallocateFunc(&util.Event{
 				Task: task,
 			})
 		}
