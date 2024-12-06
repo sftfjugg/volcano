@@ -39,9 +39,11 @@ require (
 	k8s.io/component-base v0.31.1
 	k8s.io/component-helpers v0.31.1
 	k8s.io/csi-translation-lib v0.31.1
+	k8s.io/dynamic-resource-allocation v0.31.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubernetes v1.31.1
-	k8s.io/metrics v0.0.0
+	k8s.io/metrics v0.31.1
+	k8s.io/pod-security-admission v0.31.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/controller-runtime v0.13.0
 	sigs.k8s.io/yaml v1.4.0
@@ -50,12 +52,18 @@ require (
 )
 
 require (
+	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
+	github.com/container-storage-interface/spec v1.9.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/moby/spdystream v0.4.0 // indirect
+	github.com/moby/term v0.5.0 // indirect
+	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
@@ -63,6 +71,7 @@ require (
 	k8s.io/cri-api v0.31.1 // indirect
 	k8s.io/cri-client v0.0.0 // indirect
 	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
+	k8s.io/kubectl v0.0.0 // indirect
 )
 
 require (
@@ -147,7 +156,7 @@ require (
 	k8s.io/kms v0.31.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
-	k8s.io/kubelet v0.0.0 // indirect
+	k8s.io/kubelet v0.31.1 // indirect
 	k8s.io/mount-utils v0.0.0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
