@@ -19,25 +19,27 @@ package validate
 import (
 	"testing"
 
-	admissionv1 "k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	hypernodev1alpha1 "volcano.sh/apis/pkg/apis/topology/v1alpha1"
 )
 
 func TestValidateHyperNode(t *testing.T) {
 	testCases := []struct {
-		Name           string
-		HyperNode      hypernodev1alpha1.HyperNode
-		ExpectErr      bool
-		reviewResponse admissionv1.AdmissionResponse
-		ret            string
+		Name      string
+		HyperNode hypernodev1alpha1.HyperNode
+		ExpectErr bool
 	}{
 		{
 			Name: "validate valid hypernode",
 			HyperNode: hypernodev1alpha1.HyperNode{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "hypernode-1",
+				},
 				Spec: hypernodev1alpha1.HyperNodeSpec{
 					Members: []hypernodev1alpha1.MemberSpec{
 						{
+							Type: hypernodev1alpha1.MemberTypeNode,
 							Selector: hypernodev1alpha1.MemberSelector{
 								Type:       hypernodev1alpha1.ExactMatchMemberSelectorType,
 								ExactMatch: &hypernodev1alpha1.ExactMatch{Name: "node-1"},
@@ -46,15 +48,18 @@ func TestValidateHyperNode(t *testing.T) {
 					},
 				},
 			},
-			ExpectErr:      false,
-			reviewResponse: admissionv1.AdmissionResponse{},
+			ExpectErr: false,
 		},
 		{
 			Name: "validate invalid hypernode with empty exactMatch",
 			HyperNode: hypernodev1alpha1.HyperNode{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "hypernode-1",
+				},
 				Spec: hypernodev1alpha1.HyperNodeSpec{
 					Members: []hypernodev1alpha1.MemberSpec{
 						{
+							Type: hypernodev1alpha1.MemberTypeNode,
 							Selector: hypernodev1alpha1.MemberSelector{
 								Type:       hypernodev1alpha1.ExactMatchMemberSelectorType,
 								ExactMatch: &hypernodev1alpha1.ExactMatch{Name: ""},
@@ -63,15 +68,18 @@ func TestValidateHyperNode(t *testing.T) {
 					},
 				},
 			},
-			ExpectErr:      true,
-			reviewResponse: admissionv1.AdmissionResponse{},
+			ExpectErr: true,
 		},
 		{
 			Name: "validate invalid hypernode with empty regexMatch",
 			HyperNode: hypernodev1alpha1.HyperNode{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "hypernode-1",
+				},
 				Spec: hypernodev1alpha1.HyperNodeSpec{
 					Members: []hypernodev1alpha1.MemberSpec{
 						{
+							Type: hypernodev1alpha1.MemberTypeNode,
 							Selector: hypernodev1alpha1.MemberSelector{
 								Type: hypernodev1alpha1.RegexMatchMemberSelectorType,
 								RegexMatch: &hypernodev1alpha1.RegexMatch{
@@ -82,16 +90,41 @@ func TestValidateHyperNode(t *testing.T) {
 					},
 				},
 			},
-			ExpectErr:      true,
-			reviewResponse: admissionv1.AdmissionResponse{},
+			ExpectErr: true,
+		},
+		{
+			Name: "validate invalid hypernode with invalid regexMatch",
+			HyperNode: hypernodev1alpha1.HyperNode{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "hypernode-1",
+				},
+				Spec: hypernodev1alpha1.HyperNodeSpec{
+					Members: []hypernodev1alpha1.MemberSpec{
+						{
+							Type: hypernodev1alpha1.MemberTypeNode,
+							Selector: hypernodev1alpha1.MemberSelector{
+								Type: hypernodev1alpha1.RegexMatchMemberSelectorType,
+								RegexMatch: &hypernodev1alpha1.RegexMatch{
+									Pattern: "a(b",
+								},
+							},
+						},
+					},
+				},
+			},
+			ExpectErr: true,
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			err := validateHyperNode(&testCase.HyperNode)
-			if err != nil {
-				t.Errorf("validateHyperNode failed: %v", err)
+			if !testCase.ExpectErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if testCase.ExpectErr && err == nil {
+				t.Errorf("expected error but got nil")
+			} else {
+				t.Logf("error: %v", err)
 			}
 		})
 	}
