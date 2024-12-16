@@ -26,6 +26,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	k8sframework "k8s.io/kubernetes/pkg/scheduler/framework"
@@ -217,4 +218,20 @@ func ConvertRes2ResList(res *api.Resource) v1.ResourceList {
 		rl[resourceName] = *resource.NewMilliQuantity(int64(f), resource.DecimalSI)
 	}
 	return rl
+}
+
+// FindOutRootHyperNode find out the root hypernode of the job when the hypernode join the job.
+func FindOutRootHyperNode(hyperNodeName string, job *api.JobInfo, hyperNodesTiers []int, hyperNodesListByTier map[int][]string, hyperNodesMap map[string]sets.Set[string]) (string, int) {
+	if job.RootHyperNode == "" || job.RootHyperNode == hyperNodeName {
+		return hyperNodeName, 1
+	}
+	for index, tier := range hyperNodesTiers {
+		for _, hyperNode := range hyperNodesListByTier[tier] {
+			hyperNodeSet := hyperNodesMap[hyperNode]
+			if hyperNodeSet.Has(job.RootHyperNode) && hyperNodeSet.Has(hyperNodeName) {
+				return hyperNode, index
+			}
+		}
+	}
+	return "", -1
 }

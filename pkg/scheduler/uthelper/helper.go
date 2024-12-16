@@ -23,6 +23,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"volcano.sh/apis/pkg/apis/scheduling"
 	vcapisv1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
@@ -70,6 +71,16 @@ type TestCommonStruct struct {
 	ExpectBindsNum int
 	// ExpectEvictNum the expected evict events numbers, include preempted and reclaimed evict events
 	ExpectEvictNum int
+
+	JobInfo *api.JobInfo
+	// HyperNodesListByTier contains a list of hyperNodes by tier from down to top, nodes under the same hyperNode
+	// have the same topology domain, e.g., nodes under the same switch or tor, jobs allocated in the same
+	// hyperNode can gain a better performance, the lower the tier of hyperNode, the better performance.
+	HyperNodesListByTier map[int][]string
+	// HyperNodesMap contains hyperNode Name and node Name under the hyperNode.
+	HyperNodes map[string]sets.Set[string]
+	// the hyperNodes need to order
+	OrderHyperNodes map[string][]*api.NodeInfo
 
 	// fake interface instance when check results need
 	stop       chan struct{}

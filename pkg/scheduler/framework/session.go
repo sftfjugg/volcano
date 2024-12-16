@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -76,6 +77,17 @@ type Session struct {
 	Configurations []conf.Configuration
 	NodeList       []*api.NodeInfo
 
+	// HyperNodesListByTier contains a list of hyperNodes by tier from down to top, nodes under the same hyperNode
+	// have the same topology domain, e.g., nodes under the same switch or tor, jobs allocated in the same
+	// hyperNode can gain a better performance, the lower the tier of hyperNode, the better performance.
+	HyperNodesListByTier map[int][]string
+
+	HyperNodesTiers []int
+	// HyperNodes maps hyperNode Name -> nodes under the hyperNode.
+	HyperNodes map[string][]*api.NodeInfo
+	// HyperNodesMap contains hyperNode Name and node Name under the hyperNode.
+	HyperNodesMap map[string]sets.Set[string]
+
 	plugins             map[string]Plugin
 	eventHandlers       []*EventHandler
 	jobOrderFns         map[string]api.CompareFn
@@ -90,6 +102,7 @@ type Session struct {
 	batchNodeOrderFns   map[string]api.BatchNodeOrderFn
 	nodeMapFns          map[string]api.NodeMapFn
 	nodeReduceFns       map[string]api.NodeReduceFn
+	hyperNodeOrderFns   map[string]api.HyperNodeOrderFn
 	preemptableFns      map[string]api.EvictableFn
 	reclaimableFns      map[string]api.EvictableFn
 	overusedFns         map[string]api.ValidateFn
@@ -141,6 +154,7 @@ func openSession(cache cache.Cache) *Session {
 		batchNodeOrderFns:   map[string]api.BatchNodeOrderFn{},
 		nodeMapFns:          map[string]api.NodeMapFn{},
 		nodeReduceFns:       map[string]api.NodeReduceFn{},
+		hyperNodeOrderFns:   map[string]api.HyperNodeOrderFn{},
 		preemptableFns:      map[string]api.EvictableFn{},
 		reclaimableFns:      map[string]api.EvictableFn{},
 		overusedFns:         map[string]api.ValidateFn{},
