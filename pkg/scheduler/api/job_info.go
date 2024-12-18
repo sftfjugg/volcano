@@ -370,7 +370,10 @@ type JobInfo struct {
 	// * value means workload can use all the revocable node for during node active revocable time.
 	RevocableZone string
 	Budget        *DisruptionBudget
-	LCAHyperNode  string
+
+	// The LCAHyperNode property of a job is the hypernode that serves as the smallest root in the hypernode tree.
+	// A job has multiple tasks, each belonging to a hypernode. This LCAHyperNode is the topmost and lowest common ancestor among the hypernodes of all tasks within the job.
+	LCAHyperNode string
 }
 
 // NewJobInfo creates a new jobInfo for set of tasks
