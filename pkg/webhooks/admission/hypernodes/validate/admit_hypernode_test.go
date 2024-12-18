@@ -41,7 +41,6 @@ func TestValidateHyperNode(t *testing.T) {
 						{
 							Type: hypernodev1alpha1.MemberTypeNode,
 							Selector: hypernodev1alpha1.MemberSelector{
-								Type:       hypernodev1alpha1.ExactMatchMemberSelectorType,
 								ExactMatch: &hypernodev1alpha1.ExactMatch{Name: "node-1"},
 							},
 						},
@@ -61,7 +60,6 @@ func TestValidateHyperNode(t *testing.T) {
 						{
 							Type: hypernodev1alpha1.MemberTypeNode,
 							Selector: hypernodev1alpha1.MemberSelector{
-								Type:       hypernodev1alpha1.ExactMatchMemberSelectorType,
 								ExactMatch: &hypernodev1alpha1.ExactMatch{Name: ""},
 							},
 						},
@@ -81,7 +79,6 @@ func TestValidateHyperNode(t *testing.T) {
 						{
 							Type: hypernodev1alpha1.MemberTypeNode,
 							Selector: hypernodev1alpha1.MemberSelector{
-								Type: hypernodev1alpha1.RegexMatchMemberSelectorType,
 								RegexMatch: &hypernodev1alpha1.RegexMatch{
 									Pattern: "",
 								},
@@ -103,11 +100,49 @@ func TestValidateHyperNode(t *testing.T) {
 						{
 							Type: hypernodev1alpha1.MemberTypeNode,
 							Selector: hypernodev1alpha1.MemberSelector{
-								Type: hypernodev1alpha1.RegexMatchMemberSelectorType,
 								RegexMatch: &hypernodev1alpha1.RegexMatch{
 									Pattern: "a(b",
 								},
 							},
+						},
+					},
+				},
+			},
+			ExpectErr: true,
+		},
+		{
+			Name: "validate invalid hypernode with both regexMatch and exactMatch",
+			HyperNode: hypernodev1alpha1.HyperNode{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "hypernode-1",
+				},
+				Spec: hypernodev1alpha1.HyperNodeSpec{
+					Members: []hypernodev1alpha1.MemberSpec{
+						{
+							Type: hypernodev1alpha1.MemberTypeNode,
+							Selector: hypernodev1alpha1.MemberSelector{
+								RegexMatch: &hypernodev1alpha1.RegexMatch{
+									Pattern: "node.*",
+								},
+								ExactMatch: &hypernodev1alpha1.ExactMatch{Name: "node-1"},
+							},
+						},
+					},
+				},
+			},
+			ExpectErr: true,
+		},
+		{
+			Name: "validate invalid hypernode with neither regexMatch nor exactMatch",
+			HyperNode: hypernodev1alpha1.HyperNode{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "hypernode-1",
+				},
+				Spec: hypernodev1alpha1.HyperNodeSpec{
+					Members: []hypernodev1alpha1.MemberSpec{
+						{
+							Type:     hypernodev1alpha1.MemberTypeNode,
+							Selector: hypernodev1alpha1.MemberSelector{},
 						},
 					},
 				},

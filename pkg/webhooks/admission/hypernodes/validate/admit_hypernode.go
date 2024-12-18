@@ -83,52 +83,44 @@ func AdmitHyperNode(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRespon
 	}
 }
 
-// validateHyperNodeName is to validate hypernode name.
-func validateHyperNodeName(value string, fldPath *field.Path) field.ErrorList {
-	errs := field.ErrorList{}
-	if errMsgs := validation.IsQualifiedName(value); len(errMsgs) > 0 {
-		err := field.Invalid(fldPath, value, fmt.Sprintf("hypernode name must validate failed %v", errMsgs))
-		errs = append(errs, err)
-	}
-	return errs
-}
-
 // validateHyperNodeMemberSelector is to validate hypernode member selector.
 func validateHyperNodeMemberSelector(selector hypernodev1alpha1.MemberSelector, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
-	switch selector.Type {
-	case hypernodev1alpha1.ExactMatchMemberSelectorType:
-		if selector.ExactMatch == nil {
-			err := field.Invalid(fldPath.Child("exactMatch"), selector.ExactMatch,
-				fmt.Sprintf("exactMatch is required when type is Exact"))
+
+	if selector.RegexMatch == nil && selector.ExactMatch == nil {
+		err := field.Invalid(fldPath, selector,
+			"member selector must have one of regexMatch or exactMatch")
+		errs = append(errs, err)
+		return errs
+	}
+	if selector.RegexMatch != nil && selector.ExactMatch != nil {
+		err := field.Invalid(fldPath, selector,
+			"member selector cannot have both regexMatch and exactMatch")
+		errs = append(errs, err)
+		return errs
+	}
+	if selector.ExactMatch != nil {
+		if selector.ExactMatch.Name == "" {
+			err := field.Invalid(fldPath.Child("exactMatch").Child("name"),
+				selector.ExactMatch.Name, "member exactMatch name is required")
 			errs = append(errs, err)
-		}
-		if errMsgs := validation.IsQualifiedName(selector.ExactMatch.Name); len(errMsgs) > 0 {
+		} else if errMsgs := validation.IsQualifiedName(selector.ExactMatch.Name); len(errMsgs) > 0 {
 			err := field.Invalid(fldPath.Child("exactMatch").Child("name"),
 				selector.ExactMatch.Name, fmt.Sprintf("member exactMatch validate failed %v", errMsgs))
 			errs = append(errs, err)
 		}
-	case hypernodev1alpha1.RegexMatchMemberSelectorType:
-		if selector.RegexMatch == nil {
-			err := field.Invalid(fldPath, selector.RegexMatch,
-				fmt.Sprintf("regexMatch is required when type is Regex"))
-			errs = append(errs, err)
-		}
+	}
+	if selector.RegexMatch != nil {
 		if selector.RegexMatch.Pattern == "" {
 			err := field.Invalid(fldPath.Child("regexMatch").Child("pattern"),
 				selector.RegexMatch.Pattern, "member regexMatch pattern is required")
 			errs = append(errs, err)
-		}
-		if _, err := regexp.Compile(selector.RegexMatch.Pattern); err != nil {
+		} else if _, err := regexp.Compile(selector.RegexMatch.Pattern); err != nil {
 			err := field.Invalid(fldPath.Child("regexMatch").Child("pattern"),
 				selector.RegexMatch.Pattern, fmt.Sprintf("member regexMatch pattern is invalid: %v", err))
 			errs = append(errs, err)
 		}
-	default:
-		err := field.Invalid(fldPath.Child("type"), selector.Type, fmt.Sprintf("unknown type %s", selector.Type))
-		errs = append(errs, err)
 	}
-
 	return errs
 }
 
@@ -149,9 +141,6 @@ func validateHyperNode(hypernode *hypernodev1alpha1.HyperNode) error {
 
 	errs := field.ErrorList{}
 	resourcePath := field.NewPath("")
-
-	errs = append(errs, validateHyperNodeName(hypernode.Name,
-		resourcePath.Child("metadata").Child("name"))...)
 
 	for _, member := range hypernode.Spec.Members {
 		errs = append(errs, validateHyperNodeMemberType(member.Type,
