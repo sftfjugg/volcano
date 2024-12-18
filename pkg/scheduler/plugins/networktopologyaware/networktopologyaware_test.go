@@ -20,8 +20,6 @@ import (
 	"math"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/conf"
 	"volcano.sh/volcano/pkg/scheduler/framework"
@@ -50,68 +48,86 @@ func TestArguments(t *testing.T) {
 	}
 }
 
-func TestOrderHyperNodes(t *testing.T) {
-	n1 := &api.NodeInfo{Name: "s0-n1"}
-	n2 := &api.NodeInfo{Name: "s1-n2"}
-	n3 := &api.NodeInfo{Name: "s2-n3"}
-
+func TestNetworkTopologyAwareScore(t *testing.T) {
 	tests := []struct {
+		name string
 		uthelper.TestCommonStruct
-		arguments framework.Arguments
-		expected  map[string]float64
+		arguments           framework.Arguments
+		hyperNodes          map[string][]*api.NodeInfo
+		hyperNodeTree       []map[string][]string
+		currentLCAHyperNode string
+		expected            map[string]float64
 	}{
+		// test case 1：Job first scheduler when the `LCAHyperNode` of the job is empty and we are looking for the Lowest Common Ancestor (LCA) of job with the hyperNode,
+		// now the LCA hyperNode is the hyperNode self, so it is expected to return 1.0 for the score of the hyperNode.
 		{
+			name: "Job LCAHyperNode empty for leaf node, hyperNode score should be 1.0",
 			TestCommonStruct: uthelper.TestCommonStruct{
-				Name:                 "job first scheduler when RootHyperNode is empty.",
-				Plugins:              map[string]framework.PluginBuilder{PluginName: New},
-				HyperNodesListByTier: map[int][]string{1: {"s0", "s1", "s2"}, 2: {"s3", "s4"}, 3: {"s5"}},
-				HyperNodes: map[string]sets.Set[string]{
-					"s0": sets.New("s0-n1"),
-					"s1": sets.New("s1-n2"),
-					"s2": sets.New("s2-n3"),
-					"s3": sets.New("s0", "s1", "s0-n1", "s1-n2"),
-					"s4": sets.New("s2", "s2-n3"),
-					"s5": sets.New("s3", "s4", "s0", "s1", "s2", "s0-n1", "s1-n2", "s2-n3"),
-				},
-				JobInfo: &api.JobInfo{RootHyperNode: ""},
-				OrderHyperNodes: map[string][]*api.NodeInfo{
-					"s0": {n1},
-					"s1": {n2},
-					"s2": {n3},
-				},
+				Plugins: map[string]framework.PluginBuilder{PluginName: New},
 			},
 			arguments: framework.Arguments{},
+			hyperNodes: map[string][]*api.NodeInfo{
+				"hyperNode3": nil,
+				"hyperNode4": nil,
+				"hyperNode5": nil,
+			},
+			currentLCAHyperNode: "",
+			hyperNodeTree: []map[string][]string{
+				{
+					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
+				},
+				{
+					"hyperNode1": []string{"hyperNode3", "hyperNode4"},
+					"hyperNode2": []string{"hyperNode5", "hyperNode6"},
+				},
+				{
+					"hyperNode3": []string{},
+					"hyperNode4": []string{},
+					"hyperNode5": []string{},
+					"hyperNode6": []string{},
+				},
+			},
 			expected: map[string]float64{
-				"s0": 0.833,
-				"s1": 0.833,
-				"s2": 0.833,
+				"hyperNode3": 1.0,
+				"hyperNode4": 1.0,
+				"hyperNode5": 1.0,
 			},
 		},
+		// test case 1：Job is not first scheduler when the `LCAHyperNode` of the job is not empty and the currentLCAHyperNode hyperNode3,
+		// for the hyperNode3, it is equls to the LCAHyperNode, it is the best choice for the job, so it is expected to return 1.0 for the score.
+		// for the hyperNode4, find the LCA hyperNode is the hyperNode1 of tier index 2, it is a not good choice. according to calculate to return 0.369 for the score.
+		// for the hyperNode5, find the LCA hyperNode is the hyperNode0 of tier index 3, it is a worst choice. so it is expected to return 0.0 for the score.
 		{
+			name: "Normal LCA hyperNode to score for hyperNodes",
 			TestCommonStruct: uthelper.TestCommonStruct{
-				Name:                 "one task of job schedulered on s0 when RootHyperNode is s0",
-				Plugins:              map[string]framework.PluginBuilder{PluginName: New},
-				HyperNodesListByTier: map[int][]string{1: {"s0", "s1", "s2"}, 2: {"s3", "s4"}, 3: {"s5"}},
-				HyperNodes: map[string]sets.Set[string]{
-					"s0": sets.New("s0-n1"),
-					"s1": sets.New("s1-n2"),
-					"s2": sets.New("s2-n3"),
-					"s3": sets.New("s0", "s1", "s0-n1", "s1-n2"),
-					"s4": sets.New("s2", "s2-n3"),
-					"s5": sets.New("s3", "s4", "s0", "s1", "s2", "s0-n1", "s1-n2", "s2-n3"),
-				},
-				JobInfo: &api.JobInfo{RootHyperNode: "s0"},
-				OrderHyperNodes: map[string][]*api.NodeInfo{
-					"s0": {n1},
-					"s1": {n2},
-					"s2": {n3},
-				},
+				Plugins: map[string]framework.PluginBuilder{PluginName: New},
 			},
 			arguments: framework.Arguments{},
+			hyperNodes: map[string][]*api.NodeInfo{
+				"hyperNode3": nil,
+				"hyperNode4": nil,
+				"hyperNode5": nil,
+			},
+			currentLCAHyperNode: "hyperNode3",
+			hyperNodeTree: []map[string][]string{
+				{
+					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
+				},
+				{
+					"hyperNode1": []string{"hyperNode3", "hyperNode4"},
+					"hyperNode2": []string{"hyperNode5", "hyperNode6"},
+				},
+				{
+					"hyperNode3": []string{},
+					"hyperNode4": []string{},
+					"hyperNode5": []string{},
+					"hyperNode6": []string{},
+				},
+			},
 			expected: map[string]float64{
-				"s0": 1.0,
-				"s1": 0.666,
-				"s2": 0.5,
+				"hyperNode3": 1.0,
+				"hyperNode4": 0.369,
+				"hyperNode5": 0.0,
 			},
 		},
 	}
@@ -130,19 +146,20 @@ func TestOrderHyperNodes(t *testing.T) {
 			},
 		}
 		ssn := test.RegisterSession(tiers, nil)
-		ssn.HyperNodesListByTier = test.HyperNodesListByTier
-		ssn.HyperNodesMap = test.HyperNodes
-		ssn.HyperNodesTiers = []int{1, 2, 3}
+		ssn.HyperNodes = test.hyperNodes
+		// mock for test
+		currentJobLCAHyperNode = test.currentLCAHyperNode
+		HyperNodeTree = test.hyperNodeTree
 
-		score, err := ssn.HyperNodeOrderMapFn(test.JobInfo, test.OrderHyperNodes)
+		scores, err := ssn.HyperNodeOrderMapFn(nil, ssn.HyperNodes)
 		if err != nil {
 			t.Errorf("case%d: task %s  has err %v", i, test.Name, err)
 			continue
 		}
-		hyperNodesScore := score[PluginName]
+		hyperNodesScore := scores[PluginName]
 		for hypernode, expected := range test.expected {
 			if math.Abs(hyperNodesScore[hypernode]-expected) > eps {
-				t.Errorf("case%d: task %s on hypernode %s expect have score %v, but get %v", i, test.Name, hypernode, expected, hyperNodesScore[hypernode])
+				t.Errorf("case%d: task %s on hypernode %s expect have score %v, but get %v", i+1, test.Name, hypernode, expected, hyperNodesScore[hypernode])
 			}
 		}
 	}

@@ -223,7 +223,7 @@ func SelectBestHyperNode(hyperNodeScores map[float64][]string) string {
 }
 
 // FindOutRootHyperNode find out the root hypernode of the job when the hypernode join the job.
-func FindLCAHyperNode(hyperNodeName string, job *api.JobInfo, hyperNodeTree []map[string][]string) (string, int) {
+func FindLCAHyperNode(hyperNodeName string, currentJobLCAHyperNode string, hyperNodeTree []map[string][]string) (string, int) {
 	revertHyperNodeTree := make([]map[string][]string, len(hyperNodeTree))
 	for i := len(hyperNodeTree) - 1; i >= 0; i-- {
 		revertHyperNodeTree[len(hyperNodeTree)-1-i] = hyperNodeTree[i]
@@ -256,7 +256,7 @@ func FindLCAHyperNode(hyperNodeName string, job *api.JobInfo, hyperNodeTree []ma
 		for _, hyperNode := range tierHyperNodes {
 			hyperNodeSet := hyperNodesMap[hyperNode]
 			if hyperNodeSet.Has(hyperNodeName) {
-				if job.LCAHyperNode == "" || hyperNodeSet.Has(job.LCAHyperNode) {
+				if currentJobLCAHyperNode == "" || hyperNodeSet.Has(currentJobLCAHyperNode) {
 					return hyperNode, index + 1
 				}
 			}

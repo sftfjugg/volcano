@@ -17,7 +17,8 @@ limitations under the License.
 package networktopologyaware
 
 import (
-	"k8s.io/apimachinery/pkg/util/sets"
+	"math"
+
 	"k8s.io/klog/v2"
 
 	"volcano.sh/volcano/pkg/scheduler/api"
@@ -28,6 +29,13 @@ import (
 const (
 	// PluginName indicates name of volcano scheduler plugin.
 	PluginName = "networktopologyaware"
+)
+
+// HyperNodeTree is the hypernode tree of all hypernodes in the cluster.
+// currentJobLCAHyperNode is the hypernode of the job's LCAHyperNode.
+var (
+	currentJobLCAHyperNode string
+	HyperNodeTree          []map[string][]string
 )
 
 type networkTopologyAwarePlugin struct{}
@@ -46,14 +54,14 @@ func (nta *networkTopologyAwarePlugin) OnSessionOpen(ssn *framework.Session) {
 	defer func() {
 		klog.V(5).Infof("Leaving networkTopologyAware plugin ...")
 	}()
-	ntaFn := func(jobInfo *api.JobInfo, hyperNodes map[string][]*api.NodeInfo, hyperNodesTiers []int, hyperNodesListByTier map[int][]string, hyperNodesMap map[string]sets.Set[string]) (map[string]float64, error) {
+	ntaFn := func(job *api.JobInfo, hyperNodes map[string][]*api.NodeInfo) (map[string]float64, error) {
 		hyperNodeScores := make(map[string]float64)
 		for hyperNode := range hyperNodes {
-			score := networkTopologyAwareScore(hyperNode, jobInfo, hyperNodesTiers, hyperNodesListByTier, hyperNodesMap)
+			score := networkTopologyAwareScore(hyperNode, currentJobLCAHyperNode, HyperNodeTree)
 			hyperNodeScores[hyperNode] = score
 		}
 
-		klog.V(4).Infof("networkTopologyAware score for job %s is: %v", jobInfo.Name, hyperNodeScores)
+		klog.V(1).Infof("networkTopologyAware score is: %v", hyperNodeScores)
 		return hyperNodeScores, nil
 	}
 	ssn.AddHyperNodeOrederFn(nta.Name(), ntaFn)
@@ -65,34 +73,33 @@ func (bp *networkTopologyAwarePlugin) OnSessionClose(ssn *framework.Session) {
 // networkTopologyAwareScore use the best fit polices during scheduling.
 
 // Explanation:
-// The RootHypernode property of a job is the hypernode that serves as the smallest root in the hypernode tree.
-// A job has multiple tasks, each belonging to a hypernode. This RootHypernode is the topmost and lowest common ancestor among the hypernodes of all tasks within the job.
+// The currentJobLCAHyperNode is a property of job and that serves as the smallest root in the hypernode tree of job.
+// A job has multiple tasks, each belonging to a hypernode. This LCAHyperNode is the topmost and lowest common ancestor among the hypernodes of all tasks within the job.
 
 // Goals:
-// - The tier to which the rootHypernode of a job belongs should be as low as possible.
-func networkTopologyAwareScore(hyperNode string, job *api.JobInfo, hyperNodesTiers []int, hyperNodesListByTier map[int][]string, hyperNodesMap map[string]sets.Set[string]) float64 {
-	score := 0.0
-	sumTier := 0
-	for _, tier := range hyperNodesTiers {
-		sumTier += tier
-	}
-
-	rootHypernode, index := util.FindOutRootHyperNode(hyperNode, job, hyperNodesTiers, hyperNodesListByTier, hyperNodesMap)
-	if index == -1 {
-		return score
-	}
-	// hyperNode is the rootHypernode
-	if job.RootHyperNode != "" && rootHypernode == hyperNode {
+// - The tier index to which the LCAHyperNode of a job belongs should be as low as possible.
+func networkTopologyAwareScore(hyperNode string, currentJobLCAHyperNode string, hyperNodeTree []map[string][]string) float64 {
+	// job fist first scheduler.
+	if currentJobLCAHyperNode == "" {
 		return 1.0
 	}
 
-	for tier, nodes := range hyperNodesListByTier {
-		for _, node := range nodes {
-			if node == rootHypernode {
-				tierWeight := 1 - float64(tier)/float64(sumTier)
-				return score + tierWeight
-			}
-		}
+	if currentJobLCAHyperNode == hyperNode {
+		return 1.0
 	}
-	return score
+
+	_, index := util.FindLCAHyperNode(hyperNode, currentJobLCAHyperNode, hyperNodeTree)
+	if index <= 0 {
+		klog.V(4).Infof("find LCAhyperNode failed wtih %s in hyperNodeTree", hyperNode)
+		return 0.0
+	}
+
+	// Calculate scores.
+	return scoreHyperNodeWithIndex(index, 1, len(hyperNodeTree))
+}
+
+func scoreHyperNodeWithIndex(index int, minIndex int, maxIndex int) float64 {
+	// Use logarithmic operations to calculate scores and map the original values to the range between 0 and 1.
+	// Adjust the formula to ensure that the scores meet the requirements (excluding 0 and 1).
+	return (math.Log(float64(maxIndex)) - math.Log(float64(index))) / (math.Log(float64(maxIndex)) - math.Log(float64(minIndex)))
 }

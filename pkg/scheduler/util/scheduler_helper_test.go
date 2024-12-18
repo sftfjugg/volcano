@@ -244,20 +244,18 @@ func TestGetHyperNodeList(t *testing.T) {
 
 func TestFindLCAHyperNode(t *testing.T) {
 	testCases := []struct {
-		name          string
-		hyperNodeName string
-		job           *api.JobInfo
-		hyperNodeTree []map[string][]string
-		expectedNode  string
-		expectedLevel int
+		name                   string
+		hyperNodeName          string
+		currentJobLCAHyperNode string
+		hyperNodeTree          []map[string][]string
+		expectedNode           string
+		expectedLevel          int
 	}{
 		// test case 1：When the `LCAHyperNode` of the job is empty and we are looking for the Lowest Common Ancestor (LCA) of a leaf node, it is expected to return the corresponding node and the level should be 1.
 		{
-			name:          "Job LCAHyperNode empty for leaf node",
-			hyperNodeName: "hyperNode3",
-			job: &api.JobInfo{
-				LCAHyperNode: "",
-			},
+			name:                   "Job LCAHyperNode empty for leaf node",
+			hyperNodeName:          "hyperNode3",
+			currentJobLCAHyperNode: "",
 			hyperNodeTree: []map[string][]string{
 				{
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
@@ -278,11 +276,9 @@ func TestFindLCAHyperNode(t *testing.T) {
 		},
 		// Test case 2: When the `LCAHyperNode` of the job is the same as the name of the input hypernode, it is expected to return that hypernode and the level should be 1.
 		{
-			name:          "Job LCAHyperNode equals input hyperNodeName",
-			hyperNodeName: "hyperNode0",
-			job: &api.JobInfo{
-				LCAHyperNode: "hyperNode0",
-			},
+			name:                   "Job LCAHyperNode equals input hyperNodeName",
+			hyperNodeName:          "hyperNode0",
+			currentJobLCAHyperNode: "",
 			hyperNodeTree: []map[string][]string{
 				{
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
@@ -303,11 +299,9 @@ func TestFindLCAHyperNode(t *testing.T) {
 		},
 		// Test case 3: In the situation of normally looking for the Lowest Common Ancestor (LCA) hypernode of a non-leaf node, it is expected to return the correct LCA hypernode and its corresponding level.
 		{
-			name:          "Normal LCA find for non-leaf node",
-			hyperNodeName: "hyperNode4",
-			job: &api.JobInfo{
-				LCAHyperNode: "hyperNode0",
-			},
+			name:                   "Normal LCA find for non-leaf node",
+			hyperNodeName:          "hyperNode4",
+			currentJobLCAHyperNode: "",
 			hyperNodeTree: []map[string][]string{
 				{
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
@@ -328,11 +322,9 @@ func TestFindLCAHyperNode(t *testing.T) {
 		},
 		// test case4：Look for the Lowest Common Ancestor (LCA) hypernode of nodes on different branches, and it is expected to return the correct result and its corresponding level.
 		{
-			name:          "LCA find for nodes in different branches",
-			hyperNodeName: "hyperNode5",
-			job: &api.JobInfo{
-				LCAHyperNode: "hyperNode0",
-			},
+			name:                   "LCA find for nodes in different branches",
+			hyperNodeName:          "hyperNode5",
+			currentJobLCAHyperNode: "",
 			hyperNodeTree: []map[string][]string{
 				{
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
@@ -353,11 +345,9 @@ func TestFindLCAHyperNode(t *testing.T) {
 		},
 		// test case5：Look for the Lowest Common Ancestor (LCA) hypernode of nodes on different branches, and it is expected to return the correct result and its corresponding level.
 		{
-			name:          "LCA find for nodes in different branches",
-			hyperNodeName: "hyperNode1",
-			job: &api.JobInfo{
-				LCAHyperNode: "hyperNode5",
-			},
+			name:                   "LCA find for nodes in different branches",
+			hyperNodeName:          "hyperNode1",
+			currentJobLCAHyperNode: "",
 			hyperNodeTree: []map[string][]string{
 				{
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
@@ -378,11 +368,9 @@ func TestFindLCAHyperNode(t *testing.T) {
 		},
 		// 测试用例5：未找到LCA超节点的情况（传入不存在的节点名称），期望返回空字符串和 -1
 		{
-			name:          "No LCA found for non-existent node",
-			hyperNodeName: "nonExistentNode",
-			job: &api.JobInfo{
-				LCAHyperNode: "hyperNode0",
-			},
+			name:                   "No LCA found for non-existent node",
+			hyperNodeName:          "nonExistentNode",
+			currentJobLCAHyperNode: "",
 			hyperNodeTree: []map[string][]string{
 				{
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
@@ -405,7 +393,7 @@ func TestFindLCAHyperNode(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			resultNode, resultLevel := FindLCAHyperNode(tc.hyperNodeName, tc.job, tc.hyperNodeTree)
+			resultNode, resultLevel := FindLCAHyperNode(tc.hyperNodeName, tc.currentJobLCAHyperNode, tc.hyperNodeTree)
 			if resultNode != tc.expectedNode || resultLevel != tc.expectedLevel {
 				t.Errorf("Test case '%s' failed. Expected node: %s, level: %d. Got node: %s, level: %d",
 					tc.name, tc.expectedNode, tc.expectedLevel, resultNode, resultLevel)
