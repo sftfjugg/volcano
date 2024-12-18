@@ -370,6 +370,7 @@ type JobInfo struct {
 	// * value means workload can use all the revocable node for during node active revocable time.
 	RevocableZone string
 	Budget        *DisruptionBudget
+	LCAHyperNode  string
 }
 
 // NewJobInfo creates a new jobInfo for set of tasks
