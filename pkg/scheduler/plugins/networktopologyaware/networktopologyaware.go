@@ -29,6 +29,7 @@ import (
 const (
 	// PluginName indicates name of volcano scheduler plugin.
 	PluginName = "networktopologyaware"
+	BaseScore  = 100
 )
 
 // HyperNodeTree is the hypernode tree of all hypernodes in the cluster.
@@ -54,12 +55,11 @@ func (nta *networkTopologyAwarePlugin) OnSessionOpen(ssn *framework.Session) {
 		klog.V(5).Infof("Leaving networkTopologyAware plugin ...")
 	}()
 	ntaFn := func(job *api.JobInfo, hyperNodes map[string][]*api.NodeInfo) (map[string]float64, error) {
-		ctx := job.GetTransactionContext()
-		currentJobLCAHyperNode := ctx.HyperNodeName
+		jobHyperNode := job.PodGroup.Annotations[api.TopologyAllocateLCAHyperNode]
 
 		hyperNodeScores := make(map[string]float64)
 		for hyperNode := range hyperNodes {
-			score := networkTopologyAwareScore(hyperNode, currentJobLCAHyperNode, HyperNodeTree)
+			score := networkTopologyAwareScore(hyperNode, jobHyperNode, HyperNodeTree)
 			hyperNodeScores[hyperNode] = score
 		}
 
@@ -80,24 +80,24 @@ func (bp *networkTopologyAwarePlugin) OnSessionClose(ssn *framework.Session) {
 
 // Goals:
 // - The tier index to which the LCAHyperNode of a job belongs should be as low as possible.
-func networkTopologyAwareScore(hyperNode string, currentJobLCAHyperNode string, hyperNodeTree []map[string][]string) float64 {
+func networkTopologyAwareScore(hyperNode string, jobHyperNode string, hyperNodeTree []map[string][]string) float64 {
 	// job fist first scheduler.
-	if currentJobLCAHyperNode == "" {
-		return 1.0
+	if jobHyperNode == "" {
+		return BaseScore
 	}
 
-	if currentJobLCAHyperNode == hyperNode {
-		return 1.0
+	if jobHyperNode == hyperNode {
+		return BaseScore
 	}
 
-	_, index := util.FindLCAHyperNode(hyperNode, currentJobLCAHyperNode, hyperNodeTree)
+	_, index := util.FindLCAHyperNode(hyperNode, jobHyperNode, hyperNodeTree)
 	if index <= 0 {
 		klog.V(4).Infof("find LCAhyperNode failed wtih %s in hyperNodeTree", hyperNode)
 		return 0.0
 	}
 
 	// Calculate scores.
-	return scoreHyperNodeWithIndex(index, 1, len(hyperNodeTree))
+	return BaseScore * scoreHyperNodeWithIndex(index, 1, len(hyperNodeTree))
 }
 
 func scoreHyperNodeWithIndex(index int, minIndex int, maxIndex int) float64 {

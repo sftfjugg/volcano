@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	eps = 1e-3
+	eps = 1e-1
 )
 
 func TestArguments(t *testing.T) {
@@ -52,11 +52,11 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 	tests := []struct {
 		name string
 		uthelper.TestCommonStruct
-		arguments           framework.Arguments
-		hyperNodes          map[string][]*api.NodeInfo
-		hyperNodeTree       []map[string][]string
-		currentLCAHyperNode string
-		expected            map[string]float64
+		arguments     framework.Arguments
+		hyperNodes    map[string][]*api.NodeInfo
+		hyperNodeTree []map[string][]string
+		jobHyperNode  string
+		expected      map[string]float64
 	}{
 		// test case 1：Job first scheduler when the `LCAHyperNode` of the job is empty and we are looking for the Lowest Common Ancestor (LCA) of job with the hyperNode,
 		// now the LCA hyperNode is the hyperNode self, so it is expected to return 1.0 for the score of the hyperNode.
@@ -71,7 +71,7 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 				"hyperNode4": nil,
 				"hyperNode5": nil,
 			},
-			currentLCAHyperNode: "",
+			jobHyperNode: "",
 			hyperNodeTree: []map[string][]string{
 				{
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
@@ -88,9 +88,9 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 				},
 			},
 			expected: map[string]float64{
-				"hyperNode3": 1.0,
-				"hyperNode4": 1.0,
-				"hyperNode5": 1.0,
+				"hyperNode3": 100.0,
+				"hyperNode4": 100.0,
+				"hyperNode5": 100.0,
 			},
 		},
 		// test case 1：Job is not first scheduler when the `LCAHyperNode` of the job is not empty and the currentLCAHyperNode hyperNode3,
@@ -108,7 +108,7 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 				"hyperNode4": nil,
 				"hyperNode5": nil,
 			},
-			currentLCAHyperNode: "hyperNode3",
+			jobHyperNode: "hyperNode3",
 			hyperNodeTree: []map[string][]string{
 				{
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
@@ -125,8 +125,8 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 				},
 			},
 			expected: map[string]float64{
-				"hyperNode3": 1.0,
-				"hyperNode4": 0.369,
+				"hyperNode3": 100.0,
+				"hyperNode4": 36.9,
 				"hyperNode5": 0.0,
 			},
 		},
@@ -148,14 +148,13 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 		ssn := test.RegisterSession(tiers, nil)
 		ssn.HyperNodes = test.hyperNodes
 		// mock for test
-		ctx := api.TransactionContext{
-			HyperNodeName: test.currentLCAHyperNode,
-		}
 		HyperNodeTree = test.hyperNodeTree
-
-		scores, err := ssn.HyperNodeOrderMapFn(&api.JobInfo{
-			TransactionContext: ctx,
-		}, ssn.HyperNodes)
+		job := &api.JobInfo{
+			Name:     "test-job",
+			PodGroup: &api.PodGroup{},
+		}
+		job.PodGroup.SetAnnotations(map[string]string{api.TopologyAllocateLCAHyperNode: test.jobHyperNode})
+		scores, err := ssn.HyperNodeOrderMapFn(job, ssn.HyperNodes)
 		if err != nil {
 			t.Errorf("case%d: task %s  has err %v", i, test.Name, err)
 			continue

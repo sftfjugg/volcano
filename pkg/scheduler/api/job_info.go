@@ -372,10 +372,6 @@ type JobInfo struct {
 	// * value means workload can use all the revocable node for during node active revocable time.
 	RevocableZone string
 	Budget        *DisruptionBudget
-
-	TransactionContext
-	// LastTransaction holds the context of last scheduling transaction
-	LastTransaction *TransactionContext
 }
 
 // NewJobInfo creates a new jobInfo for set of tasks
@@ -751,10 +747,6 @@ func (ji *JobInfo) FitError() string {
 	}
 
 	return reasonMsg
-}
-
-func (ji *JobInfo) GetTransactionContext() TransactionContext {
-	return ji.TransactionContext
 }
 
 // TaskSchedulingReason get detailed reason and message of the given task
