@@ -34,8 +34,7 @@ const (
 // HyperNodeTree is the hypernode tree of all hypernodes in the cluster.
 // currentJobLCAHyperNode is the hypernode of the job's LCAHyperNode.
 var (
-	currentJobLCAHyperNode string
-	HyperNodeTree          []map[string][]string
+	HyperNodeTree []map[string][]string
 )
 
 type networkTopologyAwarePlugin struct{}
@@ -55,6 +54,9 @@ func (nta *networkTopologyAwarePlugin) OnSessionOpen(ssn *framework.Session) {
 		klog.V(5).Infof("Leaving networkTopologyAware plugin ...")
 	}()
 	ntaFn := func(job *api.JobInfo, hyperNodes map[string][]*api.NodeInfo) (map[string]float64, error) {
+		ctx := job.GetTransactionContext()
+		currentJobLCAHyperNode := ctx.HyperNodeName
+
 		hyperNodeScores := make(map[string]float64)
 		for hyperNode := range hyperNodes {
 			score := networkTopologyAwareScore(hyperNode, currentJobLCAHyperNode, HyperNodeTree)

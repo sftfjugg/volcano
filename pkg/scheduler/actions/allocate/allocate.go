@@ -286,6 +286,14 @@ func (alloc *Action) allocateResourceForTasksWithTopology(tasks *util.PriorityQu
 		klog.V(4).InfoS("Find available hyperNodes for job", "jobName", job.UID, "tier", selectedTier, "hyperNodes", hyperNodes)
 	}
 	stmt, hyperNode := alloc.selectBestHyperNode(jobStmtsByTier[selectedTier], job)
+	ctx := job.GetTransactionContext()
+	if ctx.HyperNodeName != "" {
+		// Record the current LCA hyperNode of the job for use when rolling back.
+		job.LastTransaction = &api.TransactionContext{
+			HyperNodeName: ctx.HyperNodeName,
+		}
+	}
+	job.HyperNodeName = hyperNode
 	return stmt, hyperNodesWithLeftTasks[hyperNode]
 }
 

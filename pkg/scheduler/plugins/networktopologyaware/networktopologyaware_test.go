@@ -148,10 +148,14 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 		ssn := test.RegisterSession(tiers, nil)
 		ssn.HyperNodes = test.hyperNodes
 		// mock for test
-		currentJobLCAHyperNode = test.currentLCAHyperNode
+		ctx := api.TransactionContext{
+			HyperNodeName: test.currentLCAHyperNode,
+		}
 		HyperNodeTree = test.hyperNodeTree
 
-		scores, err := ssn.HyperNodeOrderMapFn(nil, ssn.HyperNodes)
+		scores, err := ssn.HyperNodeOrderMapFn(&api.JobInfo{
+			TransactionContext: ctx,
+		}, ssn.HyperNodes)
 		if err != nil {
 			t.Errorf("case%d: task %s  has err %v", i, test.Name, err)
 			continue

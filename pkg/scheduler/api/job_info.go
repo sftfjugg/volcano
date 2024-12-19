@@ -71,6 +71,8 @@ type TaskID types.UID
 
 // TransactionContext holds all the fields that needed by scheduling transaction
 type TransactionContext struct {
+	// The HyperNodeName is lowest common ancestor (LCA) of all hyperNodes for the job.
+	HyperNodeName    string
 	NodeName         string
 	EvictionOccurred bool
 	Status           TaskStatus
@@ -371,9 +373,9 @@ type JobInfo struct {
 	RevocableZone string
 	Budget        *DisruptionBudget
 
-	// The LCAHyperNode property of a job is the hypernode that serves as the smallest root in the hypernode tree.
-	// A job has multiple tasks, each belonging to a hypernode. This LCAHyperNode is the topmost and lowest common ancestor among the hypernodes of all tasks within the job.
-	LCAHyperNode string
+	TransactionContext
+	// LastTransaction holds the context of last scheduling transaction
+	LastTransaction *TransactionContext
 }
 
 // NewJobInfo creates a new jobInfo for set of tasks
@@ -749,6 +751,10 @@ func (ji *JobInfo) FitError() string {
 	}
 
 	return reasonMsg
+}
+
+func (ji *JobInfo) GetTransactionContext() TransactionContext {
+	return ji.TransactionContext
 }
 
 // TaskSchedulingReason get detailed reason and message of the given task
