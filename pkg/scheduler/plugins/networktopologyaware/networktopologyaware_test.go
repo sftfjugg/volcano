@@ -81,10 +81,11 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 					"hyperNode2": []string{"hyperNode5", "hyperNode6"},
 				},
 				{
-					"hyperNode3": []string{},
-					"hyperNode4": []string{},
-					"hyperNode5": []string{},
-					"hyperNode6": []string{},
+					"hyperNode3": []string{"node1", "node2"},
+					"hyperNode4": []string{"node3", "node4"},
+					"hyperNode7": []string{"node5", "node6"},
+					"hyperNode5": []string{"node7", "node8"},
+					"hyperNode6": []string{"node9", "node10"},
 				},
 			},
 			expected: map[string]float64{
@@ -114,14 +115,15 @@ func TestNetworkTopologyAwareScore(t *testing.T) {
 					"hyperNode0": []string{"hyperNode1", "hyperNode2"},
 				},
 				{
-					"hyperNode1": []string{"hyperNode3", "hyperNode4"},
+					"hyperNode1": []string{"hyperNode3", "hyperNode4", "hyperNode7"},
 					"hyperNode2": []string{"hyperNode5", "hyperNode6"},
 				},
 				{
-					"hyperNode3": []string{},
-					"hyperNode4": []string{},
-					"hyperNode5": []string{},
-					"hyperNode6": []string{},
+					"hyperNode3": []string{"node1", "node2"},
+					"hyperNode4": []string{"node3", "node4"},
+					"hyperNode7": []string{"node5", "node6"},
+					"hyperNode5": []string{"node7", "node8"},
+					"hyperNode6": []string{"node9", "node10"},
 				},
 			},
 			expected: map[string]float64{

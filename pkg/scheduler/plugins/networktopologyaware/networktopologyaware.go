@@ -28,8 +28,9 @@ import (
 
 const (
 	// PluginName indicates name of volcano scheduler plugin.
-	PluginName = "networktopologyaware"
-	BaseScore  = 100
+	PluginName            = "networktopologyaware"
+	BaseScore             = 100
+	NetworkTopologyWeight = "weight"
 )
 
 // HyperNodeTree is the hypernode tree of all hypernodes in the cluster.
@@ -38,15 +39,26 @@ var (
 	HyperNodeTree []map[string][]string
 )
 
-type networkTopologyAwarePlugin struct{}
+type networkTopologyAwarePlugin struct {
+	// Arguments given for the plugin
+	pluginArguments framework.Arguments
+}
 
 // New function returns prioritizePlugin object
 func New(aruguments framework.Arguments) framework.Plugin {
-	return &networkTopologyAwarePlugin{}
+	return &networkTopologyAwarePlugin{
+		pluginArguments: aruguments,
+	}
 }
 
 func (nta *networkTopologyAwarePlugin) Name() string {
 	return PluginName
+}
+
+func calculateWeight(args framework.Arguments) int {
+	weight := 1
+	args.GetInt(&weight, NetworkTopologyWeight)
+	return weight
 }
 
 func (nta *networkTopologyAwarePlugin) OnSessionOpen(ssn *framework.Session) {
@@ -54,18 +66,22 @@ func (nta *networkTopologyAwarePlugin) OnSessionOpen(ssn *framework.Session) {
 	defer func() {
 		klog.V(5).Infof("Leaving networkTopologyAware plugin ...")
 	}()
+
+	weight := calculateWeight(nta.pluginArguments)
 	ntaFn := func(job *api.JobInfo, hyperNodes map[string][]*api.NodeInfo) (map[string]float64, error) {
 		jobHyperNode := job.PodGroup.Annotations[api.TopologyAllocateLCAHyperNode]
 
 		hyperNodeScores := make(map[string]float64)
 		for hyperNode := range hyperNodes {
 			score := networkTopologyAwareScore(hyperNode, jobHyperNode, HyperNodeTree)
+			score *= float64(weight)
 			hyperNodeScores[hyperNode] = score
 		}
 
 		klog.V(1).Infof("networkTopologyAware score is: %v", hyperNodeScores)
 		return hyperNodeScores, nil
 	}
+
 	ssn.AddHyperNodeOrederFn(nta.Name(), ntaFn)
 }
 
