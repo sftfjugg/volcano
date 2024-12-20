@@ -233,7 +233,7 @@ func (alloc *Action) allocateResourceForTasksWithTopology(tasks *util.PriorityQu
 	hyperNodesWithLeftTasks := make(map[string]*util.PriorityQueue)
 	ssn := alloc.session
 	selectedTier := 0
-	LCAHyperNodeMap := map[string]string{}
+	jobNewHyperNodeMap := map[string]string{}
 	jobHyperNode := job.PodGroup.Annotations[api.TopologyAllocateLCAHyperNode]
 
 	// Find a suitable hyperNode in one tier from down to top everytime to ensure that the selected hyperNode spans the least tier.
@@ -247,8 +247,8 @@ func (alloc *Action) allocateResourceForTasksWithTopology(tasks *util.PriorityQu
 			break
 		}
 		for _, hyperNodeName := range ssn.HyperNodesListByTier[tier] {
-			LCAHyperNode, _ := util.FindLCAHyperNode(hyperNodeName, jobHyperNode, nil)
-			LCAHyperNodeMap[hyperNodeName] = LCAHyperNode
+			jobNewHyperNode, _ := util.FindLCAHyperNode(hyperNodeName, jobHyperNode, nil)
+			jobNewHyperNodeMap[hyperNodeName] = jobNewHyperNode
 
 			nodes, ok := ssn.HyperNodes[hyperNodeName]
 			if !ok {
@@ -293,7 +293,7 @@ func (alloc *Action) allocateResourceForTasksWithTopology(tasks *util.PriorityQu
 	stmt, hyperNode := alloc.selectBestHyperNode(jobStmtsByTier[selectedTier], job)
 
 	// set the LCA hyperNode for job，next scheduling will use this hyperNode as the base for selecting hyperNode.
-	jobNewHyperNode := LCAHyperNodeMap[hyperNode]
+	jobNewHyperNode := jobNewHyperNodeMap[hyperNode]
 	job.PodGroup.GetAnnotations()[api.TopologyAllocateLCAHyperNode] = jobNewHyperNode
 	return stmt, hyperNodesWithLeftTasks[hyperNode]
 }

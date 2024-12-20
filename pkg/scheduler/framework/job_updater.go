@@ -91,7 +91,7 @@ func isPodGroupStatusUpdated(newStatus, oldStatus scheduling.PodGroupStatus) boo
 func (ju *jobUpdater) updateJob(index int) {
 	job := ju.jobQueue[index]
 	ssn := ju.ssn
-	oldHyperNode := ssn.cache.Snapshot().Jobs[job.UID].PodGroup.GetAnnotations()[api.TopologyAllocateLCAHyperNode]
+	oldHyperNode := ssn.podGroupAnnotations[job.UID][api.TopologyAllocateLCAHyperNode]
 
 	job.PodGroup.Status = jobStatus(ssn, job)
 	oldStatus, found := ssn.podGroupStatus[job.UID]
